@@ -184,32 +184,32 @@ void handle_init(void) {
   // TODO: Update display here to avoid blank display on launch?
   
   // Initialize date & time text
-  Layer *date_holder = layer_create(GRect(FACE_MARGIN, 25, contentFullWidth, 94));
+  Layer *date_holder = layer_create(GRect(FACE_MARGIN, 24, contentFullWidth, 98));
   layer_add_child(window_layer, date_holder);
 
+  ResHandle roboto_49 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_49);
+  text_time_layer = text_layer_create(GRect(0, 0, contentFullWidth, 49));
+  text_layer_set_text_color(text_time_layer, GColorWhite);
+  text_layer_set_background_color(text_time_layer, GColorClear);
+  text_layer_set_font(text_time_layer, fonts_load_custom_font(roboto_49));
+  layer_add_child(date_holder, text_layer_get_layer(text_time_layer));  
+
+  line_layer = layer_create(GRect(0, 55, contentFullWidth, 2));
+  layer_set_update_proc(line_layer, line_layer_update_callback);
+  layer_add_child(date_holder, line_layer);
+  
   ResHandle roboto_21 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21);
-  text_day_layer = text_layer_create(GRect(0, 0, contentFullWidth, 25));
+  text_day_layer = text_layer_create(GRect(0, 56, contentFullWidth, 25));
   text_layer_set_text_color(text_day_layer, GColorWhite);
   text_layer_set_background_color(text_day_layer, GColorClear);
   text_layer_set_font(text_day_layer, fonts_load_custom_font(roboto_21));
   layer_add_child(date_holder, text_layer_get_layer(text_day_layer));
 
-  text_date_layer = text_layer_create(GRect(0, 21, contentFullWidth, 25));
+  text_date_layer = text_layer_create(GRect(0, 74, contentFullWidth, 25));
   text_layer_set_text_color(text_date_layer, GColorWhite);
   text_layer_set_background_color(text_date_layer, GColorClear);
   text_layer_set_font(text_date_layer, fonts_load_custom_font(roboto_21));
   layer_add_child(date_holder, text_layer_get_layer(text_date_layer));
-
-  line_layer = layer_create(GRect(0, 51, contentFullWidth, 2));
-  layer_set_update_proc(line_layer, line_layer_update_callback);
-  layer_add_child(date_holder, line_layer);
-
-  ResHandle roboto_49 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_49);
-  text_time_layer = text_layer_create(GRect(0, 45, contentFullWidth, 49));
-  text_layer_set_text_color(text_time_layer, GColorWhite);
-  text_layer_set_background_color(text_time_layer, GColorClear);
-  text_layer_set_font(text_time_layer, fonts_load_custom_font(roboto_49));
-  layer_add_child(date_holder, text_layer_get_layer(text_time_layer));
   
   // Setup weather bar
   Layer *weather_holder = layer_create(GRect(8, 125, contentFullWidth, 50));
