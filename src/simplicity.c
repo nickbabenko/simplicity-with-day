@@ -1,5 +1,7 @@
 #include "pebble.h"
 
+#define FACE_MARGIN 8
+
 static const uint32_t WEATHER_ICONS[] = {
   RESOURCE_ID_CLEAR_DAY,
   RESOURCE_ID_CLEAR_NIGHT,
@@ -18,9 +20,9 @@ static const uint32_t WEATHER_ICONS[] = {
 };
 
 enum WeatherKey {
-  WEATHER_ICON_KEY = 0x0,         // TUPLE_INT
-  WEATHER_TEMPERATURE_KEY = 0x1,  // TUPLE_CSTRING
-  INVERT_COLOR_KEY = 0x2,  // TUPLE_CSTRING
+  WEATHER_ICON_KEY = 0x0,         	// TUPLE_INT
+  WEATHER_TEMPERATURE_KEY = 0x1,  	// TUPLE_CSTRING
+  INVERT_COLOR_KEY = 0x2,  			// TUPLE_CSTRING
 };
 
 Window *window;
@@ -159,49 +161,70 @@ void handle_init(void) {
   window_set_background_color(window, GColorBlack);
 
   Layer *window_layer = window_get_root_layer(window);
+  GRect window_bounds = layer_get_bounds(window_layer);
+  
+  int contentFullWidth = (window_bounds.size.w - (FACE_MARGIN * 2));
+  
+  // FIXME testing code
+  battery_text_layer = text_layer_create(GRect(FACE_MARGIN, FACE_MARGIN, contentFullWidth, 18));
+  text_layer_set_text_color(battery_text_layer, GColorWhite);
+  text_layer_set_background_color(battery_text_layer, GColorClear);
+  text_layer_set_font(battery_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
+  text_layer_set_text_alignment(battery_text_layer, GTextAlignmentRight);
+  layer_add_child(window_layer, text_layer_get_layer(battery_text_layer));
 
+  // Subscribe to notifications
+  bluetooth_connection_service_subscribe(bluetooth_connection_changed);
+  tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
+  battery_state_service_subscribe(update_battery_state);
+
+  // Update the battery on launch
+  update_battery_state(battery_state_service_peek());
+
+  // TODO: Update display here to avoid blank display on launch?
+  
+  // Initialize date & time text
+  Layer *date_holder = layer_create(GRect(FACE_MARGIN, 25, contentFullWidth, 94));
+  layer_add_child(window_layer, date_holder);
+
+  ResHandle roboto_21 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21);
+  text_day_layer = text_layer_create(GRect(0, 0, contentFullWidth, 25));
+  text_layer_set_text_color(text_day_layer, GColorWhite);
+  text_layer_set_background_color(text_day_layer, GColorClear);
+  text_layer_set_font(text_day_layer, fonts_load_custom_font(roboto_21));
+  layer_add_child(date_holder, text_layer_get_layer(text_day_layer));
+
+  text_date_layer = text_layer_create(GRect(0, 21, contentFullWidth, 25));
+  text_layer_set_text_color(text_date_layer, GColorWhite);
+  text_layer_set_background_color(text_date_layer, GColorClear);
+  text_layer_set_font(text_date_layer, fonts_load_custom_font(roboto_21));
+  layer_add_child(date_holder, text_layer_get_layer(text_date_layer));
+
+  line_layer = layer_create(GRect(0, 51, contentFullWidth, 2));
+  layer_set_update_proc(line_layer, line_layer_update_callback);
+  layer_add_child(date_holder, line_layer);
+
+  ResHandle roboto_49 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_49);
+  text_time_layer = text_layer_create(GRect(0, 45, contentFullWidth, 49));
+  text_layer_set_text_color(text_time_layer, GColorWhite);
+  text_layer_set_background_color(text_time_layer, GColorClear);
+  text_layer_set_font(text_time_layer, fonts_load_custom_font(roboto_49));
+  layer_add_child(date_holder, text_layer_get_layer(text_time_layer));
+  
   // Setup weather bar
-  Layer *weather_holder = layer_create(GRect(8, 8, 126, 50));
+  Layer *weather_holder = layer_create(GRect(8, 125, contentFullWidth, 50));
   layer_add_child(window_layer, weather_holder);
 
   icon_layer = bitmap_layer_create(GRect(0, 0, 40, 40));
   layer_add_child(weather_holder, bitmap_layer_get_layer(icon_layer));
 
-  temp_layer = text_layer_create(GRect(40, 3, 126 - 40, 28));
+  temp_layer = text_layer_create(GRect(40, 3, (contentFullWidth - 40), 28));
   text_layer_set_text_color(temp_layer, GColorWhite);
   text_layer_set_background_color(temp_layer, GColorClear);
   text_layer_set_font(temp_layer,
       fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   text_layer_set_text_alignment(temp_layer, GTextAlignmentRight);
   layer_add_child(weather_holder, text_layer_get_layer(temp_layer));
-
-  // Initialize date & time text
-  Layer *date_holder = layer_create(GRect(0, 52, 144, 94));
-  layer_add_child(window_layer, date_holder);
-
-  ResHandle roboto_21 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21);
-  text_day_layer = text_layer_create(GRect(8, 0, 144-8, 25));
-  text_layer_set_text_color(text_day_layer, GColorWhite);
-  text_layer_set_background_color(text_day_layer, GColorClear);
-  text_layer_set_font(text_day_layer, fonts_load_custom_font(roboto_21));
-  layer_add_child(date_holder, text_layer_get_layer(text_day_layer));
-
-  text_date_layer = text_layer_create(GRect(8, 21, 144-8, 25));
-  text_layer_set_text_color(text_date_layer, GColorWhite);
-  text_layer_set_background_color(text_date_layer, GColorClear);
-  text_layer_set_font(text_date_layer, fonts_load_custom_font(roboto_21));
-  layer_add_child(date_holder, text_layer_get_layer(text_date_layer));
-
-  line_layer = layer_create(GRect(8, 51, 144-16, 2));
-  layer_set_update_proc(line_layer, line_layer_update_callback);
-  layer_add_child(date_holder, line_layer);
-
-  ResHandle roboto_49 = resource_get_handle(RESOURCE_ID_FONT_ROBOTO_BOLD_SUBSET_49);
-  text_time_layer = text_layer_create(GRect(7, 45, 144-7, 49));
-  text_layer_set_text_color(text_time_layer, GColorWhite);
-  text_layer_set_background_color(text_time_layer, GColorClear);
-  text_layer_set_font(text_time_layer, fonts_load_custom_font(roboto_49));
-  layer_add_child(date_holder, text_layer_get_layer(text_time_layer));
 
   // Setup messaging
   const int inbound_size = 64;
@@ -217,25 +240,6 @@ void handle_init(void) {
   app_sync_init(&sync, sync_buffer, sizeof(sync_buffer), initial_values,
                 ARRAY_LENGTH(initial_values), sync_tuple_changed_callback,
                 NULL, NULL);
-
-  // FIXME testing code
-  battery_text_layer = text_layer_create(GRect(0, 168 - 18, 144, 168));
-  text_layer_set_text_color(battery_text_layer, GColorWhite);
-  text_layer_set_background_color(battery_text_layer, GColorClear);
-  text_layer_set_font(battery_text_layer,
-                      fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(battery_text_layer, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(battery_text_layer));
-
-  // Subscribe to notifications
-  bluetooth_connection_service_subscribe(bluetooth_connection_changed);
-  tick_timer_service_subscribe(MINUTE_UNIT, handle_minute_tick);
-  battery_state_service_subscribe(update_battery_state);
-
-  // Update the battery on launch
-  update_battery_state(battery_state_service_peek());
-
-  // TODO: Update display here to avoid blank display on launch?
 }
 
 void handle_deinit(void) {
