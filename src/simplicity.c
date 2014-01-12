@@ -16,7 +16,7 @@ static const uint32_t WEATHER_ICONS[] = {
   RESOURCE_ID_HAIL,
   RESOURCE_ID_CLOUDY,
   RESOURCE_ID_STORM,
-  RESOURCE_ID_NA,
+  RESOURCE_ID_NA
 };
 
 enum WeatherKey {
@@ -38,8 +38,9 @@ Layer *line_layer;
 
 InverterLayer *inverter_layer = NULL;
 
-// FIXME testing code
-TextLayer *battery_text_layer;
+BitmapLayer *battery_icon;
+Layer *battery_layer;
+int battery_percentage = 0;
 
 static AppSync sync;
 static uint8_t sync_buffer[64];
@@ -48,7 +49,6 @@ void set_invert_color(bool invert) {
   if (invert && inverter_layer == NULL) {
     // Add inverter layer
     Layer *window_layer = window_get_root_layer(window);
-
     inverter_layer = inverter_layer_create(GRect(0, 0, 144, 168));
     layer_add_child(window_layer, inverter_layer_get_layer(inverter_layer));
   } else if (!invert && inverter_layer != NULL) {
@@ -149,10 +149,17 @@ void handle_minute_tick(struct tm *tick_time, TimeUnits units_changed) {
 
 // FIXME testing code
 void update_battery_state(BatteryChargeState battery_state) {
-  static char battery_text[] = "100%";
-  snprintf(battery_text, sizeof(battery_text), "%d%%",
-      battery_state.charge_percent);
-  text_layer_set_text(battery_text_layer, battery_text);
+	battery_percentage = battery_state.charge_percent;
+	layer_mark_dirty(battery_layer);
+}
+
+void battery_layer_update(Layer *layer, GContext *ctx) {
+	GRect battery_layer_bounds = layer_get_bounds(layer);
+
+	float indicator_width = (float)battery_layer_bounds.size.w / 100 * battery_percentage;
+	
+	graphics_context_set_fill_color(ctx, GColorWhite);
+	graphics_fill_rect(ctx, GRect(0, 0, 13.5, battery_layer_bounds.size.h), 0, GCornerNone);
 }
 
 void handle_init(void) {
@@ -165,13 +172,15 @@ void handle_init(void) {
   
   int contentFullWidth = (window_bounds.size.w - (FACE_MARGIN * 2));
   
-  // FIXME testing code
-  battery_text_layer = text_layer_create(GRect(FACE_MARGIN, FACE_MARGIN, contentFullWidth, 18));
-  text_layer_set_text_color(battery_text_layer, GColorWhite);
-  text_layer_set_background_color(battery_text_layer, GColorClear);
-  text_layer_set_font(battery_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
-  text_layer_set_text_alignment(battery_text_layer, GTextAlignmentRight);
-  layer_add_child(window_layer, text_layer_get_layer(battery_text_layer));
+  // Battery indicator
+  Layer *battery_holder = layer_create(GRect(FACE_MARGIN, FACE_MARGIN, contentFullWidth, 14));
+  BitmapLayer *battery_icon = bitmap_layer_create(GRect(contentFullWidth - 24, 0, 24, 14));
+  battery_layer = layer_create(GRect(contentFullWidth - 21, 3, 15, 7));
+  bitmap_layer_set_bitmap(battery_icon, gbitmap_create_with_resource(RESOURCE_ID_BATTERY));
+  layer_add_child(window_layer, battery_holder);
+  layer_add_child(battery_holder, bitmap_layer_get_layer(battery_icon));
+  layer_add_child(battery_holder, battery_layer);
+  layer_set_update_proc(battery_layer, battery_layer_update);
 
   // Subscribe to notifications
   bluetooth_connection_service_subscribe(bluetooth_connection_changed);
@@ -180,8 +189,6 @@ void handle_init(void) {
 
   // Update the battery on launch
   update_battery_state(battery_state_service_peek());
-
-  // TODO: Update display here to avoid blank display on launch?
   
   // Initialize date & time text
   Layer *date_holder = layer_create(GRect(FACE_MARGIN, 24, contentFullWidth, 98));

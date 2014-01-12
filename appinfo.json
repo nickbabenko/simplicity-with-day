@@ -113,6 +113,11 @@
         "type": "font",
         "name": "METEOCONS_38",
         "file": "fonts/meteocons.ttf"
+      },
+      {
+	      "type": "png",
+	      "name": "BATTERY",
+	      "file": "images/battery.png"
       }
     ]
   }
