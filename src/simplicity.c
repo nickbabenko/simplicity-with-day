@@ -155,11 +155,11 @@ void update_battery_state(BatteryChargeState battery_state) {
 
 void battery_layer_update(Layer *layer, GContext *ctx) {
 	GRect battery_layer_bounds = layer_get_bounds(layer);
-
+	
 	float indicator_width = (float)battery_layer_bounds.size.w / 100 * battery_percentage;
 	
 	graphics_context_set_fill_color(ctx, GColorWhite);
-	graphics_fill_rect(ctx, GRect(0, 0, 13.5, battery_layer_bounds.size.h), 0, GCornerNone);
+	graphics_fill_rect(ctx, GRect(0, 0, indicator_width, battery_layer_bounds.size.h), 0, GCornerNone);
 }
 
 void handle_init(void) {

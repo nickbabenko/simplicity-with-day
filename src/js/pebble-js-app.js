@@ -91,7 +91,7 @@ function getWeatherFromLatLong(latitude, longitude) {
         console.log("Error");
       }
     }
-  }
+  };
   req.send(null);
 }
 
@@ -116,12 +116,12 @@ function getWeatherFromLocation(location_name) {
         console.log("Error");
       }
     }
-  }
+  };
   req.send(null);
 }
 
 function getWeatherFromWoeid(woeid) {
-  var celsius = options['units'] == 'celsius';
+  var celsius = options.units == 'celsius';
   var query = encodeURI("select item.condition from weather.forecast where woeid = " + woeid +
                         " and u = " + (celsius ? "\"c\"" : "\"f\""));
   var url = "http://query.yahooapis.com/v1/public/yql?q=" + query + "&format=json";
@@ -135,36 +135,36 @@ function getWeatherFromWoeid(woeid) {
         response = JSON.parse(req.responseText);
         if (response) {
           var condition = response.query.results.channel.item.condition;
-          temperature = condition.temp + (celsius ? "\u00B0C" : "\u00B0F");
-          icon = imageId[condition.code];
+          var temperature = condition.temp + (celsius ? "\u00B0C" : "\u00B0F");
+          var icon = imageId[condition.code];
           // console.log("temp " + temperature);
           // console.log("icon " + icon);
           // console.log("condition " + condition.text);
           Pebble.sendAppMessage({
             "icon" : icon,
             "temperature" : temperature,
-            "invert_color" : (options["invert_color"] == "true" ? 1 : 0),
+            "invert_color" : (options.invert_color == "true" ? 1 : 0),
           });
         }
       } else {
         console.log("Error");
       }
     }
-  }
+  };
   req.send(null);
 }
 
+var locationOptions = { "timeout": 15000, "maximumAge": 60000 };
+
 function updateWeather() {
-  if (options['use_gps'] == "true") {
-    window.navigator.geolocation.getCurrentPosition(locationSuccess,
+  if (options.use_gps == "true") {
+    navigator.geolocation.getCurrentPosition(locationSuccess,
                                                     locationError,
                                                     locationOptions);
   } else {
-    getWeatherFromLocation(options["location"]);
+    getWeatherFromLocation(options.location);
   }
 }
-
-var locationOptions = { "timeout": 15000, "maximumAge": 60000 };
 
 function locationSuccess(pos) {
   var coordinates = pos.coords;
@@ -181,10 +181,10 @@ function locationError(err) {
 
 Pebble.addEventListener('showConfiguration', function(e) {
   var uri = 'http://tallerthenyou.github.io/simplicity-with-day/configuration.html?' +
-    'use_gps=' + encodeURIComponent(options['use_gps']) +
-    '&location=' + encodeURIComponent(options['location']) +
-    '&units=' + encodeURIComponent(options['units']) +
-    '&invert_color=' + encodeURIComponent(options['invert_color']);
+    'use_gps=' + encodeURIComponent(options.use_gps) +
+    '&location=' + encodeURIComponent(options.location) +
+    '&units=' + encodeURIComponent(options.units) +
+    '&invert_color=' + encodeURIComponent(options.invert_color);
   console.log('showing configuration at uri: ' + uri);
 
   Pebble.openURL(uri);
